@@ -157,6 +157,35 @@ multitree_example_nexus <- read.nexus("Data/multitree_example_nexus.nex")
 multitree_example_nexus
 ```
 
+# Getting phylogenies from the Open Tree of Life
+
+A detailed example of how to get phylogenies from the **Open tree of Life** can be found [here](https://cran.r-project.org/web/packages/rotl/vignettes/rotl.html).
+
+```{r}
+if (!("rotl" %in% installed.packages())) {install.packages("rotl", dependencies = TRUE)}
+
+library(rotl)
+```
+
+```{r}
+taxa <- c("Hyla", "Salmo", "Diadema", "Nautilus")
+
+resolved_names <- tnrs_match_names(taxa)
+
+resolved_names
+```
+
+Getting the tree corresponding to the taxa 
+
+```{r}
+otl_tree <- tol_induced_subtree(ott_ids = resolved_names$ott_id)
+```
+
+```{r}
+plot(otl_tree, no.margin = TRUE)
+```
+
+
 # Some phylogenetic comparative methods
 
 ```{r, results = "hide", warnings = FALSE, message = FALSE}
