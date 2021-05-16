@@ -59,6 +59,7 @@ END;"
 ```
 
 Create the same phylogenetic tree, but now using the **nexus** format
+
 ```{r, warnings = FALSE, message = FALSE}
 ## First create a Nexus file in the working directory 
 cat(
@@ -70,14 +71,14 @@ cat(
  BEGIN TREES;
  TREE=((A:10,B:9)D:5,C:15)F;
  END;",
-file = "Nexus_tree.nex"
+file = "Data/Nexus_tree.nex"
 )
 ```
 
 
 ```{r, warnings = FALSE, message = FALSE}
 ## Now read the phylogenetic tree, but look that instead of using read.tree we are using read.nexus
-nexus_tree <- read.nexus("Nexus_tree.nex")
+nexus_tree <- read.nexus("Data/Nexus_tree.nex")
 ```
 
 ```{r, warnings = FALSE, message = FALSE}
