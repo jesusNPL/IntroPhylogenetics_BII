@@ -1,0 +1,371 @@
+---
+title: 'Intro - Phylogenetics'
+author: José Eduardo Meireles and Jesús N. Pinto-Ledezma
+output:
+  html_document: 
+    theme: readable
+    toc: yes
+  pdf_document: default
+---
+
+# Reading phylogenies
+
+To study biodiversity is important to first understand the data we are using and one common data used is the phylogenetic data or phylogenetic trees that describe the evolutionary relationships between and among lineages. From here until the end of this short tutorial we will try to explain the basics of how to import/export and handle phylogenetic information and perform some phylogenetic comparative analyses. You can find extra information [**here**]( https://www.r-phylo.org/wiki/HowTo/Table_of_Content), [**here**](http://www.mpcm-evolution.org/practice/online-practical-material-chapter-2) and [**here**](https://lukejharmon.github.io/pcm/).
+
+## Formats
+
+The two most common formats in which the phylogenies are stored are the **Newick** and **Nexus** (*Maddison et al. 1997*). 
+
+The Newick format represent the phylogenetic relationships as **"(", "," and ":"**, so the species relationships can be represented as follows:
+
+```{r, results = "hide", eval = FALSE}
+"((A:10,B:9)D:5,C:15)F;"
+```
+
+Using this notation, the parenthesis links the lineages to a specific node of the tree and the comma **","** separates the lineages that descend from that node. The colon punctuation **":"** can be used after the name of the node and the subsequent numeric values represent the branch length. Finally, the semicolon punctuation **";"** indicate the end of the phylogenetic tree.
+
+Now we can see how this format works, but first, check if you have the R package required for this purpose. Here we will use the package Analyses of Phylogenetics and Evolution, AKA **{ape}**.
+
+```{r, results = "hide", warnings = FALSE, message = FALSE}
+if (!("ape" %in% installed.packages())) {install.packages("ape", dependencies = TRUE)}
+
+require(ape)
+```
+
+Create a phylogeny with three terminals (tips) and two nodes under the **newick** format.
+
+```{r, warnings = FALSE, message = FALSE}
+## Here we will create a phylogenetic tree in Newick format
+newick_tree <- "((A:10,B:9)D:5,C:15)F;"
+
+## Read the tre
+newick_tree <- read.tree(text = newick_tree)
+
+## And now we can plot the phylogentic tree
+plot(newick_tree, show.node.label = TRUE)
+```
+
+The other format is the **Nexus**, and after some time using it, we can say that the Nexus format is more flexibility and ease to read. An example of a Nexus format is as follow:
+
+```{r, results = "hide", warnings = FALSE, message = FALSE}
+"#NEXUS
+BEGIN TAXA;
+DIMENSIONS NTAXA=3;
+TaxLabels A B C;
+END;
+BEGIN TREES;
+TREE=((A:10,B:9)D:5,C:15)F;
+END;"
+```
+
+Create the same phylogenetic tree, but now using the **nexus** format
+```{r, warnings = FALSE, message = FALSE}
+## First create a Nexus file in the working directory 
+cat(
+ "#NEXUS
+ BEGIN TAXA;
+ DIMENSIONS NTAXA=3;
+ TaxLabels A B C;
+ END;
+ BEGIN TREES;
+ TREE=((A:10,B:9)D:5,C:15)F;
+ END;",
+file = "Nexus_tree.nex"
+)
+```
+
+
+```{r, warnings = FALSE, message = FALSE}
+## Now read the phylogenetic tree, but look that instead of using read.tree we are using read.nexus
+nexus_tree <- read.nexus("Nexus_tree.nex")
+```
+
+```{r, warnings = FALSE, message = FALSE}
+## lets plot the example
+plot(nexus_tree, show.node.label = TRUE)
+```
+## Data structure
+
+Now let's inspect the structure of the phylogenetic trees created previously.
+
+```{r, warnings = FALSE, message = FALSE}
+str(nexus_tree)
+```
+
+```{r, warnings = FALSE, message = FALSE}
+nexus_tree$tip.label
+```
+
+If we want to know about the branch length of the tree we just need to select **edge.lenght**
+
+```{r, warnings = FALSE, message = FALSE}
+nexus_tree$edge.length
+```
+
+An important component of a phylo object is the matrix called **edge**. In this matrix, each **row** represents a **branch** in the tree, the **first column** shows the index of the ancestral node of the branch and the **second column** shows the descendant node of that branch. Let's inspect!
+
+```{r, warnings = FALSE, message = FALSE}
+nexus_tree$edge
+```
+
+We know, we konw, it is a little hard to follow even with small trees as the example, but, if we plot the phylogenetic tree, the information within it, it is easier to understand.
+
+```{r, warnings = FALSE, message = FALSE}
+# Lets plot the tree
+plot(nexus_tree, show.tip.label = FALSE)
+# Add the internal nodes
+nodelabels()
+# Add the tips or lineages
+tiplabels()
+```
+## List of trees or multiPhylo objects
+
+Finally, the phylogenies can also be imported in form of a list and in phylogenetic comparative methods this list of phylogenies is called **multiPhylo**, and we can import/export these multiPhylos in the two formats.
+
+```{r, warnings = FALSE, message = FALSE}
+# Simulate 10 phylogenies, each one with 5 species
+multitree <- replicate(10, rcoal(5), simplify = FALSE)
+# Store the list of trees as a multiPhylo object
+class(multitree) <- "multiPhylo"
+
+# Plot a single tree from the 10
+plot(multitree[[10]])
+```
+
+```{r, warnings = FALSE, message = FALSE}
+par(mfrow = c(2, 2))
+
+plot(multitree[[1]])
+plot(multitree[[3]])
+plot(multitree[[7]])
+plot(multitree[[10]])
+
+```
+
+```{r, warnings = FALSE, message = FALSE}
+# Exporting the phylogenies as a single Newick file. 
+write.tree(phy = multitree, file = "Data/multitree_example_newick.txt")
+multitree_example_newick <- read.tree("Data/multitree_example_newick.txt")
+multitree_example_newick
+```
+
+```{r, warnings = FALSE, message = FALSE}
+# Exporting the phylogenies as a single Nexus file. 
+write.nexus(phy = multitree, file = "Data/multitree_example_nexus.nex")
+multitree_example_nexus <- read.nexus("Data/multitree_example_nexus.nex")
+multitree_example_nexus
+```
+
+# Some phylogenetic comparative methods
+
+```{r, results = "hide", warnings = FALSE, message = FALSE}
+if (!("phytools" %in% installed.packages())) {install.packages("phytools", dependencies = TRUE)}
+if (!("geiger" %in% installed.packages())) {install.packages("geiger", dependencies = TRUE)}
+if (!("nlme" %in% installed.packages())) {install.packages("nlme", dependencies = TRUE)}
+if (!("rr2" %in% installed.packages())) {install.packages("rr2", dependencies = TRUE)}
+
+```
+
+```{r}
+library(geiger)
+
+oakTraits <- read.csv("Data/oaks_traits.csv", row.names = 1)
+oakPhylo <- read.tree("Data/oaks_Hipp_phylo.tre")
+
+oakPhylo <- drop.tip(oakPhylo, setdiff(oakPhylo$tip.label, rownames(oakTraits)))
+
+name.check(oakPhylo, oakTraits) # Verify if species in the tree and the traits match
+```
+
+## Phylogenetic regressions
+
+Before starting exploring the phylogenetic regressions, let's take a look at the relationship between two traits and see if these traits are related to each other, let's say, specific leaf area (SLA) and vein length by area (vla).
+
+```{r}
+plot(sla ~ vein_length_by_area, 
+                 data = oakTraits, 
+     xlab = "Vein length by area", 
+     ylab = "Specific leaf area", 
+     pch = 21, bg = "darkgray")
+```
+
+Now explore the relationship between the two traits.
+
+```{r}
+olsModel <- lm(sla ~ vein_length_by_area, data = oakTraits)
+olsModel
+```
+
+```{r}
+summary(olsModel)
+```
+
+```{r}
+plot(sla ~ vein_length_by_area, 
+                 data = oakTraits, 
+     xlab = "Vein length by area", 
+     ylab = "Specific leaf area", 
+     pch = 21, bg = "darkgray")
+abline(olsModel, col = "red", lty = 2, lwd = 2) 
+```
+
+## Phylogenetic independent contrast
+In the lecture we have learned that when our data are phylogenetic, e.g., atributes or traits of specie, the assumption independent and identical distribution of the residual error does not hold, in other words, data for species cannot be treated as independent data points from the point of view of statistical analysis. To check this assumption, let's explore the **independent contrast** method introduced by Joseph Felsenstein in 1985, that allow estimating the evolutionary correlation between traits.
+
+```{r}
+sla <- setNames(oakTraits[, "sla"], rownames(oakTraits))
+vla <- setNames(oakTraits[, "vein_length_by_area"], rownames(oakTraits))
+
+pic_sla <- pic(sla, oakPhylo)
+pic_vla <- pic(vla, oakPhylo)
+
+picModel <- lm(pic_sla ~ pic_vla + 0)
+picModel
+```
+
+```{r}
+summary(picModel)
+```
+
+```{r}
+plot(pic_sla ~ pic_vla, 
+     xlab = "PCIs for Vein length by area", 
+     ylab = "PICs for Specific leaf area", 
+     pch = 21, bg = "darkgray")
+abline(picModel, col = "blue", lty = 2, lwd = 2) 
+```
+
+Let's compare the coefficients. 
+
+```{r}
+coef(olsModel)[2]
+coef(picModel)
+```
+
+Accounting for the phylogeny has some consequences...
+
+Now let's explore the phylogenetic generalized least squares. 
+
+## Phylogenetic generaized least squares
+
+**Phylogenetic generalized least squares** (PGLS) models are basically a linear models in which the covariance (correlation) structure between species is permitted to match that expected under a Brownian motion process of evolution on the tree--or other processes. Accordingly, the first step is to define this covariance structure. 
+
+Set the phylogenetic covariance structure.
+
+```{r}
+library(nlme)
+library(rr2)
+
+bm <- corBrownian(1, oakPhylo)
+bm
+```
+
+Now using the the defined a variance-covariance structure, let's fit a PGLS model.
+
+```{r}
+# PGLS model
+pglsModel <- gls(sla ~ vein_length_by_area, 
+                 data = oakTraits, 
+                 correlation = bm, 
+                 method = "ML")
+
+```
+
+If we look at the summary information of the pgls object, it has similar information as an object created using simple ordinary least squares (OLS) linear regressions.
+
+```{r}
+summary(pglsModel)
+
+coef(pglsModel)
+
+R2(pglsModel, lik = TRUE)
+```
+
+```{r}
+plot(sla ~ vein_length_by_area, 
+                 data = oakTraits, 
+     xlab = "Vein length by area", 
+     ylab = "Specific leaf area", 
+     pch = 21, bg = "darkgray")
+abline(a = coef(pglsModel)[1], b = coef(pglsModel)[2], lwd = 2) 
+abline(olsModel, col = "red", lty = 2, lwd = 2) 
+legend("topright", lty = c(1, 2), legend = c("PGLS - BM", "uncorrected"), 
+       col = c("black", "red"), lwd = 2)
+```
+
+You might want to know if these regressions really differ in their ability to predict **specific leaf area** from **vein length by area**. Asked in another way, *are the slopes from these two regressions significantly different from each other?* You need to know that a 95% confidence interval for the slope parameter is $b$ (the slope) $\pm$ 1.96 standard errors (this is derived from a normal distribution).
+
+```{r}
+ols_sum <- summary(olsModel)
+ols_sum$coef[2, 1] + c(-1.96, 1.96)*ols_sum$coef[2, 2]
+#for the uncorrected linear model
+coef(pglsModel)[2] + c(-1.96, 1.96)*sqrt(pglsModel$varBeta[2, 2])
+#for Brownian Motion, the 95% CI
+```
+
+## Phylogenetic signal 
+
+### Blomberg's K
+
+Blomberg’s K compares the variance of **PICs** to what we would expect under a Brownian motion (BM) model of evolution. **K = 1** means that close relatives resemble each other as much as we should expect under BM. **K < 1** that there is less **phylogenetic signal** than expected under BM and that **K > 1** means that there is more. In addition, a significant p-value returned from a randomization test tells us that the phylogenetic signal is significant, in other words, close relatives are more similar than random pairs of taxa in the dataset.
+
+```{r}
+library(phytools)
+
+K_sla <- phylosig(tree = oakPhylo, # Phylogeny
+                  x = setNames(oakTraits$sla, rownames(oakTraits)), # trait
+                  method = "K", # method
+                  test = TRUE)
+print(K_sla)
+plot(K_sla)
+```
+
+### Pagel's Lambda
+
+Pagel’s $\lambda$ is a tree transformation that stretches the tip branches relative to internal branches, making the tree more and more like a complete polytomy of a star phylogeny. If $\lambda = 0$ there is no phylogenetic signal, while $\lambda = 1$ correspond to BM and $0 < \lambda < 1$ in between.
+
+```{r}
+LB_sla <- phylosig(tree = oakPhylo, 
+                  x = setNames(oakTraits$sla, rownames(oakTraits)), 
+                  method = "lambda", 
+                  test = TRUE)
+print(LB_sla)
+plot(LB_sla)
+```
+
+
+## Trait evolution
+
+In lecture, we talked about one model of character evolution, called a Brownian Motion model. This model assumes that a trait evolves from a starting state (**z0**) according to a random walk with the variance specified by the rate parameter $\sigma^{2}$ (**sigma-squared**). In short, Brownian motion describes a process in which tip states are modeled under the assumption of a multivariate normal distribution. On a phylogeny, the multivariate mean of tip states is equal to the root state estimate, and variance accumulates linearly through time.
+
+```{r}
+library(geiger)
+
+BM_Model <- fitContinuous(oakPhylo, sla, model = "BM")
+
+BM_Model
+```
+
+Here, we can see the estimates for ancestral state ($z0$), and the rate parameter ($\sigma^{2}$), as well as some measures of model fit. The fit of the model is determined using maximum likelihood, and expressed as a log likelihood. The higher the **lnL**, the more probable the data given the model. However, when comparing different models, we can't use the **lnL**, because it does not account for the difference in the number of parameters among models. Models with more parameters will always fit better, but *do they fit significantly better?* For example, an OU model has 4 parameters (alpha [$\alpha$], theta [$\theta$], $z0$, and sigma-squared [$\sigma^{2}$]), so it should fit better than a BM model, which includes only $z0$ and $\sigma^{2}$. To account for this, statisticians have developed another measure of fit called the AIC (Akaike Information Criterion): **AIC = (2xN)-2xlnL**, where **N** is the number of parameters. This penalizes the likelihood score for adding parameters. When selecting among a set of models, the one with the lowest AIC is preferred. We will use this information later on in this lab.
+
+Brownian Motion is only one model of evolution for a continuous variable. Another model is the **Ornstein-Uhlenbeck** (OU) model, which allows the trait mean to evolve towards a new state ($\theta$), with a selective force ($\alpha$). These two new parameters, plus the starting state ($z0$) and the rate of evolution ($\sigma^{2}$) parameters from the BM model, make for a 4-parameter model. The **Early Burst** model (EB) model allows the rate of evolution to change across the tree, where the early rate of evolution is high and declines over time (presumably as niches are filled during an adaptive radiation. The rate of evolution changes exponentially over time and is specified under the model **r[t] = r[0] x exp(a x t)**, where r[0] is the initial rate, a is the rate change parameter, and $t$ is time. The maximum bound is set to **-0.000001**, representing a decelerating rate of evolution. The minimum bound is set to $log(10^{-5})$/depth of the tree.
+
+Let’s evaluate the relative fit of these three models to the specific leaf area trait.
+
+```{r}
+OU_Model <- fitContinuous(oakPhylo, sla, model = "OU")
+EB_Model <- fitContinuous(oakPhylo, sla, model = "EB")
+```
+
+```{r}
+evoModels <- c(BM_Model$opt$aicc, OU_Model$opt$aicc, EB_Model$opt$aicc)
+names(evoModels) <- c("BM", "OU", "EB")
+
+aicw(evoModels)
+```
+
+That's it folks!
+
+# References
+Maddison, D. R., Swofford, D. L. and Maddison, W. P. (1997). NEXUS: An Extensible File Format for Systematic Information. Systematic Biology 46, 590. 
+
