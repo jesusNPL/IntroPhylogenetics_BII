@@ -202,6 +202,15 @@ library(geiger)
 oakTraits <- read.csv("Data/oaks_traits.csv", row.names = 1)
 oakPhylo <- read.tree("Data/oaks_Hipp_phylo.tre")
 
+trait <- "https://raw.githubusercontent.com/jesusNPL/IntroPhylogenetics_BII/master/Data/oaks_traits.csv"
+phylo <- "https://raw.githubusercontent.com/jesusNPL/IntroPhylogenetics_BII/master/Data/oaks_Hipp_phylo.tre"
+
+oakTraits <- read.csv(trait, row.names = 1)
+oakPhylo <- read.tree(phylo)
+
+dim(oakTraits)
+oakPhylo
+
 oakPhylo <- drop.tip(oakPhylo, setdiff(oakPhylo$tip.label, rownames(oakTraits)))
 
 name.check(oakPhylo, oakTraits) # Verify if species in the tree and the traits match
@@ -240,6 +249,7 @@ abline(olsModel, col = "red", lty = 2, lwd = 2)
 ```
 
 ## Phylogenetic independent contrast
+
 In the lecture we have learned that when our data are phylogenetic, e.g., atributes or traits of specie, the assumption independent and identical distribution of the residual error does not hold, in other words, data for species cannot be treated as independent data points from the point of view of statistical analysis. To check this assumption, let's explore the **independent contrast** method introduced by Joseph Felsenstein in 1985, that allow estimating the evolutionary correlation between traits.
 
 ```{r}
